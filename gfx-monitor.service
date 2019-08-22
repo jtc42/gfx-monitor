@@ -1,0 +1,10 @@
+[Unit]
+Description=System and network monitor using GFX HAT
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/gfx-monitor/monitor.py
+
+[Install]
+WantedBy=multi-user.target
