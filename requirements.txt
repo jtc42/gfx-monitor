@@ -1,3 +1,4 @@
+gfxhat
 netifaces
 gpiozero
 psutil
