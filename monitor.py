@@ -108,11 +108,11 @@ screen_collection.add(NetworkScreen(
     refresh_ticks=30
 ))
 
-# Create a settings screen
-screen_collection.add(BacklightMenu())
-
 # Create a hello screen
 screen_collection.add(HelloScreen())
+
+# Create a settings screen
+screen_collection.add(BacklightMenu())
 
 try:
     while True:
