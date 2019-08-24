@@ -4,35 +4,26 @@ import time
 import sys
 import atexit
 
-from screens import HomeScreen, HelloScreen, NetworkScreen, StatScreen
+from screens.screens import HomeScreen, HelloScreen, NetworkScreen, StatScreen
+from screens.menus import BacklightMenu
 
 from gfxhat import touch, lcd, backlight, fonts
 
 class ScreenCollection:
-    BACKLIGHT_COLOURS = [
-        (0, 0, 100),
-        (100, 0, 0),
-        (0, 100, 0),
-        (0, 50, 50),
-        (75, 25, 0),
-        (50, 0, 50),
-        (0, 0, 0)
-    ]
-
     # TODO: Screens can send out a "bad thing happened" signal, causing the Collection to turn the backlight red
 
-    def __init__(self):
+    def __init__(self, timeout=2):
         self.homescreen = HomeScreen()
         self._screens = []  # Array of additionally added screens
         self._active = 0
 
+        self.timeout = timeout  # Timeout time in seconds
+        self.timed_out = False  # Are we currently timed out?
+        self.last_interaction_time = time.time()  # Time of last user interaction
+
         for x in range(6):
             touch.set_led(x, 0)
             touch.on(x, self.touch_handler)
-
-        self.backlight_colour_index = 0
-
-        backlight.show()
 
     @property
     def screens(self):
@@ -50,9 +41,24 @@ class ScreenCollection:
     def active(self, n):
         self._active = n % len(self.screens)
 
-    def draw(self):
-        self.set_backlight(*ScreenCollection.BACKLIGHT_COLOURS[self.backlight_colour_index])
+    def update(self):
+        """
+        Logic not related to drawing screen content
+        """
+        # Handle timeout
+        now = time.time()
+        time_since_interaction = now - self.last_interaction_time
+        if (time_since_interaction >= self.timeout) and not self.timed_out:
+            self.timed_out = True
+            for screen_i in self.screens:
+                screen_i.timeout_handler()
+        elif (time_since_interaction <= self.timeout) and self.timed_out:
+            self.timed_out = False
+            for screen_i in self.screens:
+                screen_i.wake_handler()
 
+    def draw(self):
+        self.update()
         self.screens[self.active].show()
 
     def add(self, screen):
@@ -60,29 +66,25 @@ class ScreenCollection:
         self._screens.append(screen)
 
     def touch_handler(self, ch, event):
+        # Update timeout
+        self.last_interaction_time = time.time()
+
+        # Event logic
         if event != 'press':
             return
         if ch == 5:
             self.active -= 1
         if ch == 4:
-            if self.active != 0:
-                self.active = 0
-            else:
-                self.backlight_colour_index += 1
-                self.backlight_colour_index = self.backlight_colour_index % len(ScreenCollection.BACKLIGHT_COLOURS)
+            self.active = 0
         if ch == 3:
             self.active += 1
     
         if ch == 2:
-            self.screens[self.active].line_offset = 0
+            self.screens[self.active].trigger()
         if ch == 1:
-            self.screens[self.active].line_offset -= 1
+            self.screens[self.active].current_line -= 1
         if ch == 0:
-            self.screens[self.active].line_offset += 1
-
-    def set_backlight(self, r, g, b):
-        backlight.set_all(r, g, b)
-        backlight.show()
+            self.screens[self.active].current_line += 1
 
 def cleanup():
     backlight.set_all(0, 0, 0)
@@ -106,6 +108,9 @@ screen_collection.add(NetworkScreen(
     refresh_ticks=30
 ))
 
+# Create a settings screen
+screen_collection.add(BacklightMenu())
+
 # Create a hello screen
 screen_collection.add(HelloScreen())
 
@@ -117,3 +122,4 @@ try:
 except KeyboardInterrupt:
     cleanup()
 
+cleanup()

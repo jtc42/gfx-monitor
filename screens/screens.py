@@ -14,28 +14,49 @@ class Screen:
     def __init__(self):
         self._lines = []
 
-        self.font = ImageFont.truetype(fonts.BitbuntuFull, 10)
+        self.font_size = 10
+
+        self.font = ImageFont.truetype(fonts.BitbuntuFull, self.font_size)
         self.image = Image.new('P', (width, height))
         self.image_draw = ImageDraw.Draw(self.image)
 
-        self._line_offset = 0
+        self._current_line = 0
+
+    def wake_handler(self):
+        """
+        A function triggered on ALL screens when a timeout is ended.
+        """
+        pass
+    
+    def timeout_handler(self):
+        """
+        A function triggered on ALL screens when a timeout time has expired.
+        """
+        pass
 
     @property
-    def line_offset(self):
-        return self._line_offset
+    def current_line(self):
+        return self._current_line
     
-    @line_offset.setter
-    def line_offset(self, n):
+    @current_line.setter
+    def current_line(self, n):
         max_offset = len(self._lines) - Screen.max_lines + 2
         if len(self._lines) > Screen.max_lines:
             if n < 0:
-                self._line_offset = max_offset
+                self._current_line = max_offset
             elif n <= max_offset:
-                self._line_offset = n
+                self._current_line = n
             else:
-                self._line_offset = 0
+                self._current_line = 0
         else:
-            self._line_offset = 0
+            self._current_line = 0
+
+    def trigger(self):
+        """
+        Action to perform when the trigger button is pressed.
+        Resets the scroll to top by default.
+        """
+        self.current_line = 0
 
     def set_line(self, n, text, align="left"):
         while len(self._lines) < n+1:
@@ -53,23 +74,27 @@ class Screen:
     def draw_decoration(self):
         pass
 
-    def draw_lines(self):
-        for index, line in enumerate(self._lines[self.line_offset:self.line_offset+Screen.max_lines]):
+    def draw_content(self):
+        """
+        Draw the main content.
+        By default, renders the 'lines' array into aligned text.
+        """
+        for index, line in enumerate(self._lines[self.current_line:self.current_line+Screen.max_lines]):
             # Left
             x = 0
-            y = (index * 11)
+            y = (index * (self.font_size + 1))
             self.image_draw.text((x, y), line[0], fill=1, font=self.font, align="left")
 
             # Right
             x = width
-            y = (index * 11)
+            y = (index * (self.font_size + 1))
             w, h = self.image_draw.textsize(line[1])
             self.image_draw.text((x-w, y), line[1], fill=1, font=self.font, align="right")
 
     def draw(self):
         self.update()
         self.image.paste(0, (0, 0, width, height))
-        self.draw_lines()
+        self.draw_content()
         self.draw_decoration()
 
     def show(self):
