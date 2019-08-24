@@ -12,7 +12,7 @@ from gfxhat import touch, lcd, backlight, fonts
 class ScreenCollection:
     # TODO: Screens can send out a "bad thing happened" signal, causing the Collection to turn the backlight red
 
-    def __init__(self, timeout=2):
+    def __init__(self, timeout=30):
         self.homescreen = HomeScreen()
         self._screens = []  # Array of additionally added screens
         self._active = 0
